@@ -1,0 +1,68 @@
+[
+  {
+    "target": "supabase",
+    "bootRssMb": 1440.9,
+    "workloadRssMb": 1625.5,
+    "dataDiskMb": 69.5,
+    "installDiskMb": 2291,
+    "insertSecs": 1.134,
+    "readSecs": 1.038,
+    "notes": "sum of docker stats for all supabase_* containers (default local stack); install = sum of docker image sizes (excludes Docker Desktop itself)",
+    "measuredAt": "2026-07-05T14:57:49.061Z"
+  },
+  {
+    "target": "pocketbase",
+    "bootRssMb": 15.3,
+    "workloadRssMb": 24.3,
+    "dataDiskMb": 7.1,
+    "installDiskMb": 29.7,
+    "insertSecs": 0.258,
+    "readSecs": 0.319,
+    "notes": "single Go binary (SQLite), v0.39.5; different API/SDK — measured via its REST API",
+    "measuredAt": "2026-07-07T11:59:25.746Z"
+  },
+  {
+    "target": "tinbase",
+    "bootRssMb": 606.3,
+    "workloadRssMb": 632.8,
+    "dataDiskMb": 39.7,
+    "installDiskMb": 26.5,
+    "insertSecs": 0.808,
+    "readSecs": 0.713,
+    "notes": "single node process; install = dist + @electric-sql/pglite (excludes Node runtime itself)",
+    "measuredAt": "2026-07-07T12:05:15.558Z"
+  },
+  {
+    "target": "tinbase-native",
+    "bootRssMb": 57.4,
+    "workloadRssMb": 97.4,
+    "dataDiskMb": 39,
+    "installDiskMb": 35.6,
+    "insertSecs": 0.535,
+    "readSecs": 0.418,
+    "notes": "node server + embedded native postgres process tree; install = postgres binaries + dist (excludes Node runtime)",
+    "measuredAt": "2026-07-07T12:05:56.176Z"
+  },
+  {
+    "target": "tinbase-binary",
+    "bootRssMb": 48.9,
+    "workloadRssMb": 64.1,
+    "dataDiskMb": 39,
+    "installDiskMb": 92,
+    "insertSecs": 0.379,
+    "readSecs": 0.322,
+    "notes": "single compiled executable (bun) + embedded postgres tree; install = binary + postgres binaries, NO runtime prerequisite",
+    "measuredAt": "2026-07-07T12:06:37.277Z"
+  },
+  {
+    "target": "tinbase-pgmem",
+    "bootRssMb": 71,
+    "workloadRssMb": 185.2,
+    "dataDiskMb": 0,
+    "installDiskMb": 3.6,
+    "insertSecs": 0.834,
+    "readSecs": 0.806,
+    "notes": "single node process; pg-mem in-memory subset (no RLS/realtime); install = dist + pg-mem",
+    "measuredAt": "2026-07-07T13:30:30.685Z"
+  }
+]

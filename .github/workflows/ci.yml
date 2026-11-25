@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Emit rather than --noEmit: the CLI tests spawn dist/cli.js, and skipped
+      # themselves when dist was absent - so they never ran here. Type checking
+      # is identical either way, so this costs nothing extra.
+      - run: npx tsc -p tsconfig.json
+      - name: Tests (wasm engine)
+        run: npm test
+      - name: Tests (native engine)
+        run: TINBASE_TEST_ENGINE=native npm test
+
+  # Informational: the harness reports the conformance score and exits 0, so a
+  # red X here means the comparison itself broke (stack won't start, harness
+  # threw), not that a known gap is still open. Kept non-blocking because the
+  # job depends on pulling the whole Supabase docker stack.
+  parity-supabase:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v2
+        with:
+          # pinned so a CLI release can't change what this job measures
+          version: 2.116.0
+      - run: npm ci
+      # The comparison stack lives outside the checkout on purpose. Running
+      # `supabase init` in the repo root picks up the project's own
+      # supabase/migrations, which get applied alongside the parity schema and
+      # collide with it (its policies assume a different posts.author_id type),
+      # so the stack never starts and the job reports nothing.
+      - name: Prepare parity project
+        run: |
+          mkdir -p "$RUNNER_TEMP/parity-project/supabase/migrations"
+          supabase init --workdir "$RUNNER_TEMP/parity-project" --force
+          cp parity/schema.sql "$RUNNER_TEMP/parity-project/supabase/migrations/20240101000000_parity.sql"
+          # Expose the same schemas tinbase does. Supabase ships graphql_public
+          # because it runs pg_graphql; tinbase has no GraphQL, so leaving the
+          # default in place would compare deployment config, not behaviour.
+          sed -i 's/^schemas = .*/schemas = ["public"]/' \
+            "$RUNNER_TEMP/parity-project/supabase/config.toml"
+          grep -n '^schemas' "$RUNNER_TEMP/parity-project/supabase/config.toml"
+      - name: Start real Supabase stack
+        run: |
+          supabase start --workdir "$RUNNER_TEMP/parity-project" \
+            -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - name: Compare tinbase with Supabase
+        run: |
+          eval "$(supabase status --workdir "$RUNNER_TEMP/parity-project" -o env)"
+          SUPABASE_URL="$API_URL" \
+          SUPABASE_ANON_KEY="$ANON_KEY" \
+          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          npm run parity -- --compare
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --workdir "$RUNNER_TEMP/parity-project" --no-backup || true

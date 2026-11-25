@@ -1,0 +1,462 @@
+import Link from 'next/link'
+import { SiteNav } from '@/components/site-nav'
+import { Code } from '@/components/code'
+import { WeightChart } from '@/components/weight-chart'
+import { FeatureMatrix } from '@/components/feature-matrix'
+import { ArchitectureDiagram } from '@/components/architecture-diagram'
+import { EngineCards } from '@/components/engine-cards'
+
+const SECTIONS = [
+  { id: 'why', label: 'Why tinbase' },
+  { id: 'architecture', label: 'Architecture' },
+  { id: 'getting-started', label: 'Getting started' },
+  { id: 'env', label: 'Environment variables' },
+  { id: 'cli', label: 'CLI reference' },
+  { id: 'engines', label: 'Engines' },
+  { id: 'single-binary', label: 'Single binary' },
+  { id: 'studio', label: 'Studio' },
+  { id: 'functions', label: 'Edge Functions' },
+  { id: 'automation', label: 'Webhooks, cron & queues' },
+  { id: 'types', label: 'Typed clients' },
+  { id: 'rls', label: 'Row Level Security' },
+  { id: 'embedding', label: 'Embedding & browser' },
+  { id: 'feature-completeness', label: 'Feature completeness' },
+  { id: 'coverage', label: 'API coverage' },
+  { id: 'benchmarks', label: 'Benchmarks' },
+]
+
+function H2({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="scroll-mt-24 border-t border-border pt-10 text-2xl font-bold tracking-tight first:border-0 first:pt-0">
+      {children}
+    </h2>
+  )
+}
+
+function Pre({ children, lang = 'bash' }: { children: string; lang?: string }) {
+  return <Code code={children} lang={lang} className="rounded-lg p-4" />
+}
+
+function P({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={`leading-relaxed text-muted${className ? ' ' + className : ''}`}>{children}</p>
+}
+
+const IC = 'rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.85em] text-accent'
+
+export const metadata = {
+  title: 'Docs',
+  description:
+    'Getting started, CLI reference, engines, single-binary builds, Row Level Security, embedding in the browser, API coverage, and benchmarks for tinbase.',
+  alternates: { canonical: '/docs' },
+}
+
+export default function Docs() {
+  return (
+    <>
+      <SiteNav />
+      <div className="mx-auto flex max-w-6xl gap-12 px-6 py-12">
+        <aside className="sticky top-24 hidden h-fit w-52 shrink-0 lg:block">
+          <div className="text-xs font-semibold uppercase tracking-wider text-subtle">Documentation</div>
+          <nav className="mt-4 space-y-1">
+            {SECTIONS.map((s) => (
+              <a key={s.id} href={`#${s.id}`} className="block rounded-md px-3 py-1.5 text-sm text-muted hover:bg-surface-2 hover:text-fg">
+                {s.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 max-w-3xl space-y-6">
+          <h1 className="text-4xl font-bold tracking-tight">Documentation</h1>
+
+          <H2 id="why">Why tinbase</H2>
+          <P>
+            tinbase came out of{' '}
+            <a className="text-accent hover:text-accent-hover" href="https://lifo.sh">
+              lifo
+            </a>{' '}
+            and{' '}
+            <a className="text-accent hover:text-accent-hover" href="https://rapidnative.com">
+              RapidNative
+            </a>{' '}
+            with a hard goal: run an entire dev stack — database, auth, storage, realtime — in the
+            browser and on phones, with no VMs and no cloud behind it. The first step was cutting the
+            memory overhead of running that backend locally; the next was making the same backend run
+            in-process inside a browser tab.
+          </P>
+          <P>
+            That is why every service is a pure <code className={IC}>(Request) =&gt; Response</code>{' '}
+            fetch handler and the database can be pure JavaScript. Along the way it became a
+            Docker-free, drop-in replacement for local Supabase development that covers most use cases
+            — so it is open source for everyone.
+          </P>
+
+          <H2 id="architecture">Architecture</H2>
+          <P>
+            The official <code className={IC}>supabase-js</code> SDK talks to a single{' '}
+            <code className={IC}>(Request) =&gt; Response</code> fetch handler. That handler routes to the service
+            implementations — PostgREST-compatible REST, GoTrue-compatible auth, Storage, the Realtime Phoenix
+            protocol, Edge Functions, and the Studio admin API — and every one of them sits on a single swappable{' '}
+            <code className={IC}>DbEngine</code> adapter. Swap the engine (PGlite / native / pg-mem) without changing a
+            line above it. In Node the handler is wrapped in an HTTP + WebSocket server; in the browser you call it
+            in-process — see <Link className="text-accent hover:text-accent-hover" href="/browser">running in the browser</Link>.
+          </P>
+          <div className="mt-4 rounded-lg border border-border bg-surface p-5">
+            <ArchitectureDiagram />
+          </div>
+
+          <H2 id="getting-started">Getting started</H2>
+          <P>
+            tinbase is a Supabase-compatible backend in a single process. In a project with a{' '}
+            <code className={IC}>supabase/</code> directory (or none — it still boots):
+          </P>
+          <Pre>{`npx tinbase start
+
+#   API URL: http://127.0.0.1:54321
+#   anon key: eyJ...
+#   service_role key: eyJ...`}</Pre>
+          <P>
+            Migrations in <code className={IC}>supabase/migrations/*.sql</code> and{' '}
+            <code className={IC}>supabase/seed.sql</code> are applied on boot, using the same file
+            conventions and tracking table as the Supabase CLI — so they remain portable to hosted
+            Supabase. Then point the official SDK at it:
+          </P>
+          <Pre lang="ts">{`import { createClient } from '@supabase/supabase-js'
+const supabase = createClient('http://127.0.0.1:54321', ANON_KEY)`}</Pre>
+
+          <H2 id="env">Environment variables</H2>
+          <P>
+            None of these are required — <code className={IC}>npx tinbase start</code> boots with zero
+            config. Set them in your shell (or a process manager / hosting platform&apos;s env config)
+            to change a default, or pass the equivalent CLI flag instead.
+          </P>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-fg">
+                  <th className="py-2 pr-4 font-semibold">Variable</th>
+                  <th className="py-2 pr-4 font-semibold">Default</th>
+                  <th className="py-2 pr-4 font-semibold">Flag override</th>
+                  <th className="py-2 font-semibold">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted">
+                {[
+                  ['TINBASE_PORT / PORT', '54321', '-p, --port <n>', 'Hosting platforms (Heroku, Render, …) inject PORT; TINBASE_PORT wins if both are set.'],
+                  ['TINBASE_JWT_SECRET', 'insecure built-in dev secret', '--jwt-secret <s>', 'Signs the anon/service_role keys. The default ships in tinbase’s source — set a real secret for anything beyond local dev.'],
+                  ['TINBASE_ENGINE', 'native (macOS/Linux, x64/arm64), wasm elsewhere', '--engine <wasm|native|pgmem>', 'Selects the DbEngine backend.'],
+                  ['TINBASE_DATABASE_URL / DATABASE_URL', 'unset (uses the embedded engine)', '--database-url <url>', 'Point at an external Postgres you already run instead of the embedded engine. Treated as shared: bootstrap runs idempotently.'],
+                  ['TINBASE_OAUTH_<PROVIDER>_CLIENT_ID / _CLIENT_SECRET / _ENABLED', 'unset (no OAuth providers)', 'none — also settable via supabase/config.toml [auth.external.<provider>]', 'Only needed to enable OAuth sign-in for that provider. GOTRUE_EXTERNAL_<PROVIDER>_CLIENT_ID / _SECRET / _ENABLED is the GoTrue-compatible alias, checked first.'],
+                ].map(([v, d, f, n]) => (
+                  <tr key={v} className="border-b border-border">
+                    <td className="py-2 pr-4 font-mono text-[0.85em] text-fg">{v}</td>
+                    <td className="py-2 pr-4">{d}</td>
+                    <td className="py-2 pr-4 font-mono text-[0.85em]">{f}</td>
+                    <td className="py-2">{n}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <P className="text-xs text-subtle">
+            <code className={IC}>--host</code>, <code className={IC}>--dir</code>,{' '}
+            <code className={IC}>--data-dir</code>, and <code className={IC}>--storage-dir</code> are
+            flag-only — there&apos;s no env var equivalent for those.
+          </P>
+
+          <H2 id="cli">CLI reference</H2>
+          <Pre>{`tinbase start      # boot the server (applies pending migrations first)
+tinbase migrate    # apply pending migrations and exit
+tinbase status     # list applied migrations
+tinbase keys       # print anon / service_role keys
+tinbase gen types  # emit a TypeScript Database type
+tinbase db reset   # wipe + re-run migrations and seed
+tinbase db diff    # DDL for out-of-migration schema changes
+
+  -p, --port <n>        port (default 54321; or TINBASE_PORT / PORT env)
+      --dir <path>      project dir containing supabase/ (default cwd)
+      --data-dir <path> data dir (default <dir>/.tinbase/db)
+      --jwt-secret <s>  JWT secret (or TINBASE_JWT_SECRET)
+      --memory          in-memory database (wasm engine)
+      --engine <e>      native (default), wasm, or pgmem
+      --database-url <url>  use an external Postgres you already run
+                            (postgres://…; or DATABASE_URL env)`}</Pre>
+
+          <H2 id="engines">Engines</H2>
+          <P>
+            One <code className={IC}>DbEngine</code> interface, four backends. Pick with{' '}
+            <code className={IC}>--engine</code> (or <code className={IC}>--database-url</code>) — nothing above
+            the engine changes.
+          </P>
+          <EngineCards />
+          <P className="mt-6">
+            The <strong className="text-fg">wasm</strong> and <strong className="text-fg">native</strong> engines run
+            identical bootstrap, migrations, RLS, and realtime CDC — the full suite passes on both:{' '}
+            <code className={IC}>TINBASE_TEST_ENGINE=native npm test</code>.
+          </P>
+
+          <H2 id="single-binary">Single binary</H2>
+          <Pre>{`npm run build:binary   # requires bun; emits dist-bin/tinbase (~58 MB)
+./tinbase start        # that's the whole deployment`}</Pre>
+          <P>
+            One compiled executable — no Node, npm, or Docker on the target machine. It defaults to
+            the native engine and serves REST, Auth, Storage, and Realtime WebSockets at ~49 MB of RAM
+            at boot, ~66 MB under load.
+          </P>
+
+          <H2 id="studio">Studio</H2>
+          <P>
+            A built-in dashboard ships at <code className={IC}>/_/</code>, shaped like Supabase
+            Studio (React + Radix + Tailwind). Log in with the{' '}
+            <code className={IC}>service_role</code> key printed at startup. See the{' '}
+            <Link className="text-accent hover:text-accent-hover" href="/studio">full Studio tour with screenshots</Link>:
+          </P>
+          <ul className="ml-5 list-disc space-y-1 text-muted text-muted">
+            <li>
+              <b className="text-fg">Table Editor</b> — browse tables with pagination and row
+              counts; insert, edit, and delete rows
+            </li>
+            <li>
+              <b className="text-fg">SQL Editor</b> — run SQL with result grids and Postgres
+              error details
+            </li>
+            <li>
+              <b className="text-fg">Authentication</b> — list, create, delete users, reset
+              passwords
+            </li>
+            <li>
+              <b className="text-fg">Storage</b> — create/delete buckets, upload/delete
+              objects, toggle public access
+            </li>
+            <li>
+              <b className="text-fg">Database</b> — stats overview and applied migrations
+            </li>
+          </ul>
+          <P>
+            It compiles to a single self-contained HTML file, so it works inside the single binary
+            too.
+          </P>
+
+          <H2 id="functions">Edge Functions</H2>
+          <P>
+            <code className={IC}>supabase.functions.invoke()</code> runs your handlers in-process.
+            Supabase-style <code className={IC}>Deno.serve(handler)</code> functions (with{' '}
+            <code className={IC}>Deno.env</code>) run unchanged, as do <code className={IC}>export default</code>{' '}
+            handlers. The CLI loads them from{' '}
+            <code className={IC}>supabase/functions/&lt;name&gt;/index.&#123;ts,js,mjs&#125;</code>, or
+            pass them to <code className={IC}>createBackend(&#123; functions &#125;)</code>. Functions
+            using only Web APIs work as-is; <code className={IC}>npm:</code>/<code className={IC}>jsr:</code>/URL
+            imports still need a bundling step.
+          </P>
+          <Pre lang="ts">{`// supabase/functions/hello/index.mjs
+Deno.serve(async (req) => {
+  const { name = 'world' } = await req.json().catch(() => ({}))
+  return new Response(
+    JSON.stringify({ message: \`Hello \${name}!\` }),
+    { headers: { 'content-type': 'application/json' } }
+  )
+})`}</Pre>
+
+          <H2 id="automation">Webhooks, cron &amp; queues</H2>
+          <P>
+            The automation layer works with no extension on either engine — tinbase implements it
+            natively rather than needing pg_net/pg_cron/pgmq installed.
+          </P>
+          <P>
+            <b className="text-fg">Database webhooks</b> fire an HTTP request when rows change,
+            with Supabase&apos;s exact payload (<code className={IC}>type/table/schema/record/old_record</code>).
+            Configure via <code className={IC}>createBackend(&#123; webhooks &#125;)</code>,{' '}
+            <code className={IC}>backend.webhooks.register()</code>, or <code className={IC}>supabase/webhooks.json</code>.
+          </P>
+          <P>
+            <b className="text-fg">Cron</b> — drop-in with pg_cron&apos;s API:{' '}
+            <code className={IC}>select cron.schedule(&apos;nightly&apos;, &apos;0 0 * * *&apos;, &apos;delete from logs&apos;)</code>{' '}
+            (also the <code className={IC}>&apos;N seconds&apos;</code> form), <code className={IC}>cron.unschedule(...)</code>,
+            and the <code className={IC}>cron.job</code> / <code className={IC}>cron.job_run_details</code> tables.
+            Schedules match in <b className="text-fg">UTC</b>, like hosted pg_cron. An in-process scheduler
+            runs due jobs and logs each run.
+          </P>
+          <P>
+            <b className="text-fg">HTTP from SQL</b> — a pg_net emulation:{' '}
+            <code className={IC}>net.http_post</code> / <code className={IC}>net.http_get</code> /{' '}
+            <code className={IC}>net.http_delete(...)</code> enqueue a request that an in-process worker sends,
+            recording the reply in <code className={IC}>net._http_response</code>. So the common Supabase pattern —
+            a cron job that calls an Edge Function,{' '}
+            <code className={IC}>cron.schedule(..., $$ select net.http_post(...) $$)</code> — runs unchanged.
+          </P>
+          <P>
+            All of the above run only while tinbase is up (no catch-up of missed runs), execute with service-role
+            privileges (RLS bypassed), and are available on the wasm and native engines, not pg-mem.
+          </P>
+          <P>
+            <b className="text-fg">Queues</b> — a pgmq subset: call from SQL or the client.
+          </P>
+          <Pre lang="ts">{`await supabase.schema('pgmq').rpc('send', { queue_name: 'jobs', msg: { task: 'email' } })
+const { data } = await supabase.schema('pgmq').rpc('read', { queue_name: 'jobs', vt: 30, qty: 5 })`}</Pre>
+
+          <H2 id="types">Typed clients</H2>
+          <P>
+            Generate a Supabase-shaped <code className={IC}>Database</code> type from the live schema,
+            the same as <code className={IC}>supabase gen types typescript</code>:
+          </P>
+          <Pre lang="bash">{`tinbase gen types typescript > database.types.ts`}</Pre>
+          <Pre lang="ts">{`import type { Database } from './database.types'
+const supabase = createClient<Database>(url, anonKey)  // fully typed queries`}</Pre>
+
+          <H2 id="rls">Row Level Security</H2>
+          <P>
+            Every REST and Storage request runs inside a transaction with{' '}
+            <code className={IC}>SET LOCAL role</code> and{' '}
+            <code className={IC}>request.jwt.claims</code> applied, so policies behave exactly like
+            hosted Supabase:
+          </P>
+          <Pre lang="sql">{`create policy "own rows" on todos
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());`}</Pre>
+
+          <H2 id="embedding">Embedding &amp; browser</H2>
+          <P>
+            The core is a pure <code className={IC}>(Request) =&gt; Response</code> fetch handler.
+            Serve it over HTTP in Node, or hand it to supabase-js as a custom fetch and run the whole
+            backend in-process — in the browser, PGlite persists to IndexedDB/OPFS. There&apos;s a{' '}
+            <Link className="text-accent hover:text-accent-hover" href="/browser">dedicated guide to running in the browser</Link>{' '}
+            (including the lighter pure-JS pg-mem engine):
+          </P>
+          <Pre lang="ts">{`import { createBackend } from 'tinbase'
+
+const backend = await createBackend({
+  // dataDir: 'idb://my-app'   <- browser persistence
+  migrations: [{ name: '20240101000000_init', sql: '...' }],
+})
+
+const supabase = createClient('http://localhost', backend.anonKey, {
+  global: { fetch: (i, init) => backend.fetch(new Request(i, init)) },
+})`}</Pre>
+
+          <H2 id="feature-completeness">Feature completeness</H2>
+          <P>
+            Where tinbase stands against the Supabase surface, mapped from the{' '}
+            <a className="text-accent hover:text-accent-hover" href="https://github.com/tinbase/tinbase/blob/main/ROADMAP.md">
+              roadmap
+            </a>
+. <span className="text-accent">✓ Yes</span>{' '}
+            means it&apos;s implemented and covered by the test suite against the real supabase-js;{' '}
+            <span className="text-warn">◑ Partial</span> and{' '}
+            <span className="text-muted">– Planned</span> are honest about the rest.
+          </P>
+          <FeatureMatrix />
+
+          <H2 id="coverage">API coverage</H2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-fg">
+                  <th className="py-2 pr-4 font-semibold">Module</th>
+                  <th className="py-2 pr-4 font-semibold">Coverage</th>
+                  <th className="py-2 font-semibold">Notable gaps</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted">
+                {[
+                  ['Database (postgrest-js)', '~95%', 'aggregates within embeds'],
+                  ['Auth (auth-js)', '~80%', 'MFA, SSO/SAML, phone auth'],
+                  ['Storage (storage-js)', '~90%', 'image transforms (served as no-op)'],
+                  ['Realtime (realtime-js)', '~85%', 'per-row DELETE RLS, private channels'],
+                  ['Edge Functions', '~70%', 'npm:/jsr: import resolution, secrets'],
+                  ['Type generation', '~85%', 'composite-type args, multi-schema'],
+                ].map(([m, c, g]) => (
+                  <tr key={m} className="border-b border-border">
+                    <td className="py-2 pr-4 text-fg">{m}</td>
+                    <td className="py-2 pr-4 font-semibold text-accent">{c}</td>
+                    <td className="py-2">{g}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <P>
+            Roughly 80% of the supabase-js SDK surface overall — and ~90% of what a typical CRUD +
+            auth + storage + realtime app actually calls.
+          </P>
+          <P className="mt-3">
+            Beyond the client SDK, the local platform features real projects rely on also work:{' '}
+            <b className="text-fg">type generation</b>, <b className="text-fg">RLS</b>{' '}
+            (enforced on REST, Storage, and realtime), <b className="text-fg">database webhooks</b>,{' '}
+            <b className="text-fg">cron</b>, <b className="text-fg">queues (pgmq)</b>,{' '}
+            the <b className="text-fg">Studio</b> dashboard, and Supabase-CLI migration
+            conventions with <code className={IC}>db reset</code> / <code className={IC}>db diff</code>.
+          </P>
+
+          <H2 id="benchmarks">Benchmarks</H2>
+          <P>
+            Same workload for every backend: boot with one migrated table, then 1,000 single-row
+            inserts followed by 1,000 filtered list queries. Memory is the physical footprint of the
+            whole process tree (vmmap) for native processes and the sum of docker stats for
+            containers. Apple Silicon, macOS 15.
+          </P>
+          <div className="rounded-xl border border-border bg-surface p-6">
+            <WeightChart />
+          </div>
+          <P>
+            The two axes tell different stories: pg-mem uses the most RAM under load of the tinbase
+            engines, yet is by far the lightest to <em>ship</em> — a ~6.7 MB pure-JS install with no
+            WASM and no native binary, ideal for the browser and embedded previews.
+          </P>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-fg">
+                  <th className="py-2 pr-4 font-semibold"></th>
+                  <th className="py-2 pr-4 font-semibold text-accent">tinbase (binary)</th>
+                  <th className="py-2 pr-4 font-semibold text-accent">tinbase (native)</th>
+                  <th className="py-2 pr-4 font-semibold text-accent">tinbase (pg-mem)</th>
+                  <th className="py-2 pr-4 font-semibold text-accent">tinbase (wasm)</th>
+                  <th className="py-2 pr-4 font-semibold">PocketBase</th>
+                  <th className="py-2 font-semibold">Supabase local</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted">
+                {[
+                  ['Database', 'real Postgres 17 + RLS', 'real Postgres 17 + RLS', 'in-memory, pure-JS', 'real Postgres (PGlite) + RLS', 'SQLite', 'Postgres 17'],
+                  ['Memory at boot', '49 MB', '59 MB', '71 MB', '~610 MB', '15 MB', '1,441 MB'],
+                  ['Memory under load', '66 MB', '100 MB', '185 MB', '~640 MB', '24 MB', '1,626 MB'],
+                  ['Data on disk (1k rows)', '39 MB', '39 MB', '0 (in-memory)', '40 MB', '7 MB', '70 MB'],
+                  ['Install size', '92 MB (58 MB bin + PG)', '36 MB + Node', '6.7 MB + Node', '27 MB + Node', '30 MB', '2,291 MB + Docker'],
+                  ['Processes', '2', '2', '1', '1', '1', '12 containers'],
+                  ['1,000 inserts', '0.4 s', '0.5 s', '0.8 s', '0.8 s', '0.3 s', '1.1 s'],
+                  ['1,000 filtered reads', '0.3 s', '0.4 s', '0.8 s', '0.9 s', '0.3 s', '1.0 s'],
+                ].map(([label, ...cells]) => (
+                  <tr key={label} className="border-b border-border">
+                    <td className="py-2 pr-4 font-medium text-fg">{label}</td>
+                    {cells.map((c, i) => (
+                      <td key={i} className={'py-2 pr-4' + (i < 4 ? ' text-fg' : '')}>{c}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <P className="text-xs text-subtle">
+            The wasm figure is essentially PGlite&apos;s WASM heap, which measures anywhere in
+            ~575–650 MB depending on GC timing — treat it as a band, not a point. pgmem is a pure-JS
+            in-memory engine that runs PL/pgSQL, triggers and RLS-policy DDL (migrations apply unchanged),
+            though as a superuser so RLS isn&apos;t enforced per-request, and cron/pgmq are absent — but
+            a ~6.7 MB install with no WASM, the lightest option for the browser.
+          </P>
+          <P>
+            Methodology, raw numbers, and a reproducible script live in the repo:{' '}
+            <a className="text-accent hover:text-accent-hover" href="https://github.com/tinbase/tinbase/blob/main/bench/footprint.ts">
+              bench/footprint.ts
+            </a>{' '}
+            and{' '}
+            <a className="text-accent hover:text-accent-hover" href="https://github.com/tinbase/tinbase/blob/main/bench/results.json">
+              bench/results.json
+            </a>
+            .
+          </P>
+        </main>
+      </div>
+    </>
+  )
+}
